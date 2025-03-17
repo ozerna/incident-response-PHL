@@ -36,6 +36,11 @@ Now the ball is in your court to make the right decision and take action. There 
 ![Image](https://github.com/user-attachments/assets/4bc460e2-6fe3-4a1e-b3f3-379d188fefc0)
 
 # Scenario Artifacts
+[phl_access_log.txt](https://github.com/user-attachments/files/19276963/phl_access_log.txt)
+
+[phl_database_access_log.txt](https://github.com/user-attachments/files/19276965/phl_database_access_log.txt)
+
+[phl_database_shell.txt](https://github.com/user-attachments/files/19276967/phl_database_shell.txt)
 
 ## Steps the "Bad Actor" took Create Logs and IoCs:
 1. Download the TOR browser installer: https://www.torproject.org/download/
