@@ -1,8 +1,9 @@
 # Incident Response Report - Premium House Lights
 - [Threat Scenario](scenario-PHL.md)
 
-## Platforms and Languages Leveraged
-- Wireshark
+## Tools Leveraged
+- Wireshark for packet analysis
+- Log files
 
 ##  Scenario
 
